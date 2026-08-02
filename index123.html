@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Submitter</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f9;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover { background-color: #218838; }
+        #status { margin-top: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Submit Location Data</h2>
+    <button onclick="shareAndSendLocation()">Share and Send Location</button>
+    <div id="status">Click the button to send location data.</div>
+</div>
+
+<script>
+// Replace this with your actual backend endpoint or Formspree URL
+const RECEIVER_ENDPOINT = 'https://formspree.io/f/mqervzva';
+
+function shareAndSendLocation() {
+    const status = document.getElementById('status');
+    
+    if (!navigator.geolocation) {
+        status.textContent = "Geolocation is not supported by your browser.";
+        return;
+    }
+
+    status.textContent = "Requesting location details...";
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const payload = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracyInMeters: position.coords.accuracy,
+                timestamp: new Date().toISOString()
+            };
+            
+            sendToServer(payload);
+        },
+        (error) => {
+            status.textContent = `Error obtaining location: ${error.message}`;
+        },
+        { enableHighAccuracy: true }
+    );
+}
+
+async function sendToServer(data) {
+    const status = document.getElementById('status');
+    status.textContent = "Sending details securely...";
+
+    try {
+        const response = await fetch(RECEIVER_ENDPOINT, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+            status.textContent = "Data successfully sent to your endpoint!";
+            status.style.color = "green";
+        } else {
+            status.textContent = `Server accepted request but returned an error: ${response.statusText}`;
+            status.style.color = "red";
+        }
+    } catch (err) {
+        status.textContent = "Network error: Failed to connect to the receiver endpoint.";
+        status.style.color = "red";
+    }
+}
+</script>
+
+</body>
+</html>
